@@ -3,12 +3,13 @@
 
 use structopt::StructOpt;
 use postgres::{Client, NoTls};
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, Write};
 
 // Run different shid functions based on first arg
 // TODO structopt has support for subcommands which I think I'm planning on using
 // TODO I'll probably want to have better management of my postgres connections
 // addDomain - add domains to postgres from stdin, with values determined by flags / EnvVars // TODO
+// TODO move functions into their own files since this is planned to get pretty big
 #[derive(StructOpt)]
 struct Cli {
   // The function to run
@@ -27,14 +28,14 @@ fn main() {
   // Verify Program (which always exists thanks to structopt)
   verify_program(&args.program);
 
-  if args.function == "addDomain" {
-    add_domain(args);
+  match args.function.as_str() {
+    "addDomain" => add_domains(args),
+    "getDomain" => get_domains(args),
+    _ => panic!("How exactly did this happen"),
   }
-
-  println!("Crystal Dolphins");
 }
 
-fn add_domain(args: Cli) {
+fn add_domains(args: Cli) {
   // Next steps
   // - decide on whether to enforce protocols (I'm thinking no right now? Can strip it off I think)
   // - add a unique constaint or checks if they exist for each domain
@@ -52,6 +53,21 @@ fn add_domain(args: Cli) {
                                             FROM programs
                                             WHERE name = $3))
       "#, &[&line.unwrap(), &args.source, &args.program]).unwrap();
+  }
+}
+
+fn get_domains(args: Cli) {
+  let mut client = Client::connect("postgresql://postgres:docker@localhost:5432/shid", NoTls).unwrap();
+
+  let rows = client.query("SELECT host FROM domains WHERE program_id = (SELECT id FROM programs WHERE name = $1)", &[&args.program]).unwrap();
+
+  let mut handle = io::stdout();
+  let mut handle = stdout.lock();
+
+  for row in &rows {
+    let value: &str = row.get(0);
+    handle.write_all(value.as_bytes()).expect("Writing to stdout failed");
+    handle.write_all(b"\n").expect("Writing to stdout failed");
   }
 }
 
