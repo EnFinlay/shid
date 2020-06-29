@@ -54,7 +54,8 @@ CREATE TABLE IF NOT EXISTS endpoints (
   created_at TIMESTAMP NOT NULL,
   updated_at TIMESTAMP NOT NULL,
   verbs http_verbs[] NOT NULL,
-  domain_id INT REFERENCES domains (id)
+  domain_id INT REFERENCES domains (id),
+  port_id INT REFERENCES ports(id)
 );
 
 CREATE TABLE IF NOT EXISTS parameters (

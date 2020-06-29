@@ -19,7 +19,11 @@ struct Cli {
   program: String,
 
   #[structopt(short = "s", long = "source", default_value = "recon")]
-  source: String
+  source: String,
+
+  // Note: this is only used by getDomain and is more reason I should move to using the structOpt subcommand shiz
+  #[structopt(short = "b", long = "scanned_before", default_value = "1970-01-01")]
+  scanned_before: String
 }
 
 fn main() {
@@ -59,9 +63,19 @@ fn add_domains(args: Cli) {
 fn get_domains(args: Cli) {
   let mut client = Client::connect("postgresql://postgres:docker@localhost:5432/shid", NoTls).unwrap();
 
-  let rows = client.query("SELECT host FROM domains WHERE program_id = (SELECT id FROM programs WHERE name = $1)", &[&args.program]).unwrap();
+  let rows = client.query(r#"
+  SELECT host
+  FROM domains
+  WHERE
+  program_id = (SELECT id FROM programs WHERE name = $1)
+  AND
+    (last_scanned_at < TO_TIMESTAMP($2, 'YYYY-MM-DD HH:MI:SS')
+    OR
+    last_scanned_at IS NULL)
+  "#
+  , &[&args.program, &args.scanned_before]).unwrap();
 
-  let mut handle = io::stdout();
+  let stdout = io::stdout();
   let mut handle = stdout.lock();
 
   for row in &rows {
