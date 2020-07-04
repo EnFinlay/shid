@@ -49,6 +49,17 @@ fn add_domains(args: Cli) {
   let mut client = Client::connect("postgresql://postgres:docker@localhost:5432/shid", NoTls).unwrap();
 
   for line in io::stdin().lock().lines() {
+      let host = line.unwrap();
+
+      let rows = client.query("SELECT COUNT(id) FROM domains WHERE host = $1", &[&host]).unwrap();
+      let row = &rows[0];
+      let count: i64 = row.get(0);
+
+      if count > 0 {
+        println!("rejected: {}", &host);
+        continue;
+      }
+
       client.execute(r#"
       INSERT INTO domains
         (host, is_in_scope, are_subs_in_scope, source, created_at, updated_at, program_id)
@@ -56,7 +67,7 @@ fn add_domains(args: Cli) {
         ($1, true, true, $2, now(), now(), (SELECT id
                                             FROM programs
                                             WHERE name = $3))
-      "#, &[&line.unwrap(), &args.source, &args.program]).unwrap();
+      "#, &[&host, &args.source, &args.program]).unwrap();
   }
 }
 
