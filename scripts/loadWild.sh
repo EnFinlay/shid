@@ -7,7 +7,7 @@ if [ "$#" -ne 4 ]; then
 fi
 
 # Step 1: Insert the program, this will become part of the shid binary in the near future
-echo "INSERT INTO programs (name, link, platform, created_at, updated_at) VALUES ('$1', '$2', '$3', NOW(), NOW());" | docker exec -i pg-docker psql -U postgres -d shid
+echo "INSERT INTO programs (name, link, platform, created_at, updated_at) VALUES ('$1', '$2', '$3', NOW(), NOW());" | docker exec -i shid-psql psql -U postgres -d shid
 
 # Step 2: Use Shid to add domain to the new program
 # If shid isn't in your $PATH what are you even doing?
