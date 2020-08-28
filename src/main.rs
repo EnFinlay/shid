@@ -21,6 +21,12 @@ struct Cli {
   #[structopt(short = "s", long = "source", default_value = "recon")]
   source: String,
 
+  #[structopt(short = "l", long = "link")]
+  link: String,
+
+  #[structopt(long = "platform", default_value = "hackerone")]
+  platform: String,
+
   // Note: this is only used by getDomain and is more reason I should move to using the structOpt subcommand shiz
   #[structopt(short = "b", long = "scanned_before", default_value = "1970-01-01")]
   scanned_before: String
@@ -30,13 +36,28 @@ fn main() {
   let args = Cli::from_args();
 
   // Verify Program (which always exists thanks to structopt)
-  verify_program(&args.program);
+  if args.function.as_str() != "addProgram" {
+    verify_program(&args.program);
+  }
 
   match args.function.as_str() {
+    "addProgram" => add_program(args),
     "addDomain" => add_domains(args),
     "getDomain" => get_domains(args),
     _ => panic!("How exactly did this happen"),
   }
+}
+
+fn add_program(args: Cli) {
+  let mut client = Client::connect("postgresql://postgres:docker@localhost:5432/shid", NoTls).unwrap();
+
+  // Oh man that's ugly (lower), but I can't figure out how else to do this
+  client.execute(r#"
+  INSERT INTO programs
+    (name, link, platform, created_at, updated_at)
+  VALUES
+    ($1, $2, lower($3)::platforms, now(), now())
+  "#, &[&args.program, &args.link, &args.platform]).unwrap();
 }
 
 fn add_domains(args: Cli) {
