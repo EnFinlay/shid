@@ -1,4 +1,6 @@
-# Shid
+# Shid - ABANDONED
+
+I've decided to stop development on this project. Using Rust for this was a bad call since this project is mainly gluing things together between the command line and a database, which is far better suited to a scripting language.
 
 ## Overview
 
